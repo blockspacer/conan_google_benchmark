@@ -24,6 +24,16 @@ from distutils.util import strtobool
 
 conan_build_helper = python_requires("conan_build_helper/[~=0.0]@conan/stable")
 
+# Users locally they get the 1.0.0 version,
+# without defining any env-var at all,
+# and CI servers will append the build number.
+# USAGE
+# version = get_version("1.0.0")
+# BUILD_NUMBER=-pre1+build2 conan export-pkg . my_channel/release
+def get_version(version):
+    bn = os.getenv("BUILD_NUMBER")
+    return (version + bn) if bn else version
+
 class BenchmarkConan(conan_build_helper.CMakePackage):
     name = "benchmark"
     description = "A microbenchmark support library."
@@ -34,7 +44,7 @@ class BenchmarkConan(conan_build_helper.CMakePackage):
     license = "Apache-2.0"
     exports_sources = ["CMakeLists.txt"]
     generators = "cmake"
-    version = "v1.5.2"
+    version = get_version("v1.5.2")
 
     settings = "arch", "build_type", "compiler", "os"
 
@@ -43,10 +53,10 @@ class BenchmarkConan(conan_build_helper.CMakePackage):
       "enable_asan": [True, False],
       "enable_msan": [True, False],
       "enable_tsan": [True, False],
-    "shared": [True, False],
-    "fPIC": [True, False],
-    "enable_lto": [True, False],
-    "enable_exceptions": [True, False]
+      "shared": [True, False],
+      "fPIC": [True, False],
+      "enable_lto": [True, False],
+      "enable_exceptions": [True, False]
     }
 
     default_options = {
@@ -75,6 +85,10 @@ class BenchmarkConan(conan_build_helper.CMakePackage):
     @property
     def _build_subfolder(self):
         return "build_subfolder"
+
+    @property
+    def _libcxx(self):
+      return str(self.settings.get_safe("compiler.libcxx"))
 
     _cmake = None
 
@@ -145,7 +159,7 @@ class BenchmarkConan(conan_build_helper.CMakePackage):
                 self._cmake.definitions["HAVE_STEADY_CLOCK"] = False
             else:
                 self._cmake.definitions["BENCHMARK_BUILD_32_BITS"] = "ON" if "64" not in str(self.settings.arch) else "OFF"
-            self._cmake.definitions["BENCHMARK_USE_LIBCXX"] = "ON" if (str(self.settings.compiler.libcxx) == "libc++") else "OFF"
+            self._cmake.definitions["BENCHMARK_USE_LIBCXX"] = "ON" if (self._libcxx == "libc++") else "OFF"
         else:
             self._cmake.definitions["BENCHMARK_USE_LIBCXX"] = "OFF"
 
