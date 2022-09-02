@@ -182,16 +182,18 @@ class BenchmarkConan(conan_build_helper.CMakePackage):
           self.build_requires("llvm_tools/master@conan/stable")
 
     def build(self):
-        cmake = self._configure_cmake()
-        cmake.build()
+        with tools.vcvars(self.settings, only_diff=False): # https://github.com/conan-io/conan/issues/6577
+            cmake = self._configure_cmake()
+            cmake.build()
 
     def package(self):
-        cmake = self._configure_cmake()
-        cmake.install()
+        with tools.vcvars(self.settings, only_diff=False): # https://github.com/conan-io/conan/issues/6577
+            cmake = self._configure_cmake()
+            cmake.install()
 
-        self.copy(pattern="LICENSE", dst="licenses", src=self._source_subfolder)
-        tools.rmdir(os.path.join(self.package_folder, 'lib', 'pkgconfig'))
-        tools.rmdir(os.path.join(self.package_folder, 'lib', 'cmake'))
+            self.copy(pattern="LICENSE", dst="licenses", src=self._source_subfolder)
+            tools.rmdir(os.path.join(self.package_folder, 'lib', 'pkgconfig'))
+            tools.rmdir(os.path.join(self.package_folder, 'lib', 'cmake'))
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
